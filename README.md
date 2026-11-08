@@ -17,7 +17,7 @@ Un ensemble d'outils et de services pour restaurer une ergonomie moderne sur les
 Clonez le dépôt puis exécutez le script d'installation en mode administrateur :
 
 ```bash
-git clone [https://github.com/TVIEIL/ubuntu-tty-comfort-fix.git](https://github.com/TVIEIL/ubuntu-tty-comfort-fix.git)
+git clone https://github.com/TVIEIL/ubuntu-tty-comfort-fix.git
 cd ubuntu-tty-comfort-fix
 sudo ./install.sh
 ```
