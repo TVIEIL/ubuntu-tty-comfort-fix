@@ -21,7 +21,13 @@ git clone [https://github.com/TVIEIL/ubuntu-tty-comfort-fix.git](https://github.
 cd ubuntu-tty-comfort-fix
 sudo ./install.sh
 ```
+## Installation via PPA (Ubuntu)
 
+```bash
+sudo add-apt-repository ppa:tvieil/ppa
+sudo apt update
+sudo apt install ubuntu-tty-comfort-fix
+```
 
 ## Désinstallation
 
