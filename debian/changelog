@@ -1,0 +1,7 @@
+ubuntu-tty-comfort-fix (1.0.1) noble; urgency=medium
+
+  * Dynamic mouse wheel device detection via evdev capabilities.
+  * Emit PageUp and PageDown events for native terminal scrolling.
+  * Rebuilt standalone binary with PyInstaller.
+
+ -- Vieil Thierry <tvieil59@gmail.com>  Sun, 08 Nov 2026 20:45:00 +0100
