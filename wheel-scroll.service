@@ -1,0 +1,14 @@
+[Unit]
+Description=TTY Mouse Wheel to Keyboard Navigation Daemon
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/tty-wheel-daemon
+Restart=always
+RestartSec=2
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
