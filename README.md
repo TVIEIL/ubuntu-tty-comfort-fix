@@ -21,3 +21,15 @@ git clone [https://github.com/TVIEIL/ubuntu-tty-comfort-fix.git](https://github.
 cd ubuntu-tty-comfort-fix
 sudo ./install.sh
 ```
+
+
+## Désinstallation
+
+Pour supprimer l'ensemble des services, configurations et binaires du système :
+
+```bash
+cd ubuntu-tty-comfort-fix
+sudo ./uninstall.sh
+```
+
+
