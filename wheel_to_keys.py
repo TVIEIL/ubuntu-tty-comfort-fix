@@ -1,68 +1,71 @@
 #!/usr/bin/env python3
-import os
-import signal
 import sys
+import time
 import evdev
 from evdev import InputDevice, UInput, ecodes
 
-if os.geteuid() != 0:
-  print("[-] Erreur : a lancer obligatoirement avec sudo !")
-  sys.exit(1)
 
-os.system("modprobe uinput")
-
-device_path = None
-
-if os.path.exists("/dev/input/event18"):
-  try:
-    dev = InputDevice("/dev/input/event18")
-    if "mouse" in dev.name.lower() or "optical" in dev.name.lower():
-      device_path = "/dev/input/event18"
-  except Exception:
-    pass
-
-if not device_path:
-  for path in evdev.list_devices():
+def find_mouse_device():
+    """Détecte dynamiquement la souris ou un périphérique disposant d'une molette."""
     try:
-      dev = InputDevice(path)
-      if "mouse" in dev.name.lower() or "optical" in dev.name.lower():
-        device_path = path
-        break
-    except Exception:
-      continue
+        devices = [InputDevice(path) for path in evdev.list_devices()]
+    except Exception as e:
+        print(f"Erreur lors de la lecture des périphériques d'entrée : {e}")
+        return None
 
-if not device_path:
-  print("[-] Souris introuvable.")
-  sys.exit(1)
+    # 1. Priorité aux périphériques avec 'mouse' ou 'optical' dans leur nom
+    for dev in devices:
+        name = dev.name.lower()
+        if "mouse" in name or "optical" in name:
+            return dev
 
-mouse = InputDevice(device_path)
-print(f"[+] Souris connectee : {mouse.name} sur {device_path}")
+    # 2. Détection de secours par les capacités (déplacement relatif + molette)
+    for dev in devices:
+        caps = dev.capabilities()
+        if ecodes.EV_REL in caps and ecodes.REL_WHEEL in caps[ecodes.EV_REL]:
+            return dev
 
-ui = UInput(
-    {ecodes.EV_KEY: [ecodes.KEY_PAGEUP, ecodes.KEY_PAGEDOWN]},
-    name="Virtual-Wheel-Keyboard",
-)
-print("[+] Pont actif ! Faites tourner la molette (Ctrl+C pour quitter)...")
-
-
-def force_exit(signum, frame):
-  signal.signal(signal.SIGINT, signal.SIG_IGN)
-  signal.signal(signal.SIGTERM, signal.SIG_IGN)
-  try:
-    ui.close()
-    mouse.close()
-  except Exception:
-    pass
-  print("\n[+] Arret propre.")
-  os._exit(0)
+    return None
 
 
-signal.signal(signal.SIGINT, force_exit)
-signal.signal(signal.SIGTERM, force_exit)
+def main():
+    dev = find_mouse_device()
+    if not dev:
+        print("Erreur : aucune souris détectée.", file=sys.stderr)
+        sys.exit(1)
 
-for event in mouse.read_loop():
-  if event.type == ecodes.EV_REL and event.code == ecodes.REL_WHEEL:
-    key = ecodes.KEY_PAGEUP if event.value > 0 else ecodes.KEY_PAGEDOWN
-    ui.write(ecodes.EV_KEY, key, 1)
-    ui.write(ecodes.EV_KEY, key, 0)
-    ui.syn()
+    print(f"Périphérique sélectionné : {dev.name} ({dev.path})")
+
+    # Clavier virtuel uinput pour réémettre les touches Flèche Haut / Bas (ou PageUp/Down)
+    cap = {
+        ecodes.EV_KEY: [ecodes.KEY_UP, ecodes.KEY_DOWN]
+    }
+    ui = UInput(cap, name="tty-wheel-keyboard-emulator")
+
+    print("Démon à l'écoute des événements de la molette...")
+
+    try:
+        for event in dev.read_loop():
+            # Détection de l'événement de défilement relatif (molette verticale)
+            if event.type == ecodes.EV_REL and event.code == ecodes.REL_WHEEL:
+                if event.value > 0:
+                    # Molette vers le haut -> Touche Flèche Haut
+                    ui.write(ecodes.EV_KEY, ecodes.KEY_UP, 1)
+                    ui.write(ecodes.EV_KEY, ecodes.KEY_UP, 0)
+                    ui.syn()
+                elif event.value < 0:
+                    # Molette vers le bas -> Touche Flèche Bas
+                    ui.write(ecodes.EV_KEY, ecodes.KEY_DOWN, 1)
+                    ui.write(ecodes.EV_KEY, ecodes.KEY_DOWN, 0)
+                    ui.syn()
+
+    except KeyboardInterrupt:
+        pass
+    except (OSError, PermissionError) as e:
+        print(f"Périphérique déconnecté ou erreur d'accès : {e}", file=sys.stderr)
+    finally:
+        ui.close()
+
+
+if __name__ == "__main__":
+    main()
